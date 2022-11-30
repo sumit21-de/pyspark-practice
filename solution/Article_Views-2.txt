@@ -1,0 +1,21 @@
+#Problem No - 1149 Article Views 2
+
+#loading csv to dataframe.
+df = spark.read.format('csv') \
+  .option("inferSchema", True) \
+  .option("header", True) \
+  .option("sep", delimiter) \
+  .load("views.csv")
+
+#defining join conditions ,since we need viewers who viewed more than 1 article on same day, we fetch only those records matching below conditions
+cond = [col("df1.view_date") == col("df2.view_date"), col("df1.viewer_id") == col("df2.viewer_id"), col("df1.article_id") != col("df2.article_id")]
+joined_df = df.alias('df1').join(df.alias('df2'),on=cond)
+
+#perform aggregation(count) on viewer_id field to get the count of article they have viewed.
+agg_df = joined_df.groupBy('df1.viewer_id').agg(count('df1.article_id').alias('cnt'))
+
+#select only those viewers who has viewed more than 1 article.
+final_df=agg_df.select('viewer_id').filter(col('cnt')>1)
+
+#order in ascending order of viewer_id
+final_df.orderBy('viewer_id').show()
